@@ -3,7 +3,7 @@
 Use this after you have your own copy of the template:
 
 1. Click **Use this template** on GitHub and clone the new repository, or
-   clone `kamontat/bun-astro-template` directly.
+   clone `ktemplates/astro` directly.
 2. Open an AI coding agent (Claude Code, Codex, Cursor, …) in that directory
    and paste the prompt below, or tell it to read `GET_START.md` and follow
    the prompt inside.
@@ -33,7 +33,7 @@ through the agent.
 
 ````markdown
 You are setting up a web project in the current directory, which is a copy of
-the template repository `kamontat/bun-astro-template` (Astro on Node.js with pnpm, deployed to
+the template repository `ktemplates/astro` (Astro on Node.js with pnpm, deployed to
 Cloudflare Workers static assets through GitHub Actions, with optional Google
 Tag Manager). Work through the phases below in order. Stop and ask me whenever
 a step needs my input or fails in a way you cannot fix. Do not skip
@@ -66,7 +66,7 @@ Run `git remote get-url origin` and decide:
 - **origin is my own repository** (created with **Use this template**): keep
   it. Read GITHUB_OWNER and REPO_NAME from
   `gh repo view --json owner,name --jq '.owner.login + "/" + .name'`.
-- **origin is `kamontat/bun-astro-template`** (cloned directly): I need my own
+- **origin is `ktemplates/astro`** (cloned directly): I need my own
   repository. Ask for GITHUB_OWNER (default `gh api user --jq .login`),
   REPO_NAME (default: the directory name) and visibility (default
   `private`) in Phase 2, then in Phase 3 step 1 create it.
@@ -127,7 +127,7 @@ Ask me for these values in one message, and suggest defaults:
    git remote rename origin template
    git checkout --orphan fresh-main
    git add -A
-   git commit -m "chore: initialize project from bun-astro-template"
+   git commit -m "chore: initialize project from ktemplates/astro"
    git branch -D main
    git branch -m main
    gh repo create GITHUB_OWNER/REPO_NAME --VISIBILITY --source . --remote origin
@@ -414,7 +414,7 @@ previews never send data.
 
    ```bash
    git add -A
-   git commit -m "chore: initialize project from bun-astro-template"   # or: git commit --amend --no-edit
+   git commit -m "chore: initialize project from ktemplates/astro"   # or: git commit --amend --no-edit
    git push -u origin main
    ```
 
