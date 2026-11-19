@@ -25,12 +25,13 @@ jobs:
       url: https://pr-${{ github.event.number }}-<TODO>.kcinth.workers.dev
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      ## NOTE: pnpm version comes from package.json packageManager; keep runtime in sync with mise.toml
+      ## NOTE: pnpm version comes from package.json packageManager; keep runtime in sync with bun in mise.toml
       - uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3.1.2
         with:
-          runtime: node@24.22.3
+          runtime: bun@1.4.4
           cache: true
           require-lockfile: true
+      ## NOTE: Wrangler itself runs on the runner's preinstalled Node.js (needs >=22); the build it starts runs on Bun.
       - uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
         id: deploy
         with:

@@ -1,8 +1,5 @@
 {
-	"extends": ["@kcconfigs/tsconfig", "astro/tsconfigs/strictest"],
+	"extends": ["@kcconfigs/tsconfig/bun", "astro/tsconfigs/strictest"],
 	"include": ["${configDir}/.astro/types.d.ts", "${configDir}/**/*"],
-	"exclude": ["${configDir}/**/node_modules/**", "${configDir}/dist/**"],
-	"compilerOptions": {
-		"rootDir": "${configDir}"
-	}
+	"exclude": ["${configDir}/**/node_modules/**", "${configDir}/dist/**"]
 }

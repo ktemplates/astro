@@ -17,7 +17,9 @@ Before you start, have ready:
 - A GitHub account, with the [GitHub CLI](https://cli.github.com/) installed
 - A Cloudflare account (free plan is enough)
 - A Google account, if you want Google Tag Manager
-- [mise](https://mise.jdx.dev/), or [Node.js](https://nodejs.org/) and [pnpm](https://pnpm.io/), installed
+- [mise](https://mise.jdx.dev/), or [Bun](https://bun.com/) and [pnpm](https://pnpm.io/), installed
+- [Node.js](https://nodejs.org/) 22 or later, only for Wrangler's first deploy
+  from your machine
 - A decision on whether to use a UI framework (React, Svelte, Vue, …) or
   plain Astro components; the agent asks, and explains the trade-off if you
   are unsure
@@ -31,7 +33,7 @@ through the agent.
 
 ````markdown
 You are setting up a web project in the current directory, which is a copy of
-the template repository `kamontat/bun-astro-template` (Astro on Node.js with pnpm, deployed to
+the template repository `kamontat/bun-astro-template` (Astro on Bun with pnpm as package manager, deployed to
 Cloudflare Workers static assets through GitHub Actions, with optional Google
 Tag Manager). Work through the phases below in order. Stop and ask me whenever
 a step needs my input or fails in a way you cannot fix. Do not skip
@@ -55,7 +57,8 @@ and wait.
   scopes. If not, ask me to run `gh auth login` or
   `gh auth refresh -s workflow`. If several accounts are listed, make sure
   the active one can write to my repository.
-- `mise --version` (preferred), or `node --version` and `pnpm --version`.
+- `mise --version` (preferred), or `bun --version` and `pnpm --version`.
+- `node --version` is 22 or later; Wrangler (Phase 5) needs it.
 
 ## Phase 1: Find out which repository this is
 
@@ -121,7 +124,7 @@ Ask me for these values in one message, and suggest defaults:
 
    This commit is replaced by the real setup commit in Phase 7, so do not
    push yet.
-2. Install the pinned toolchain with `mise install` (skip if Node.js and pnpm
+2. Install the pinned toolchain with `mise install` (skip if Bun and pnpm
    are installed without mise). Dependencies are installed in Phase 4.
 3. Delete `GET_START.md`; it only applies to the template.
 

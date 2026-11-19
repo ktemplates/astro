@@ -1,12 +1,11 @@
 # bun-astro-template
 
 A starter template for static websites built with [Astro](https://astro.build/),
-run on [Node.js](https://nodejs.org/) with [pnpm](https://pnpm.io/), and deployed to
+installed with [pnpm](https://pnpm.io/), run on [Bun](https://bun.com/), and deployed to
 [Cloudflare Workers](https://developers.cloudflare.com/workers/static-assets/)
 as static assets. It started as a sibling of
 [bun-lit-template](https://github.com/kamontat/bun-lit-template), with the same
-tooling, CI and deploy setup, but runs on Node.js because Astro targets Node.js
-first.
+tooling, CI and deploy setup, but with pnpm as the package manager.
 
 - [Stack](#stack)
 - [Getting started](#getting-started)
@@ -24,7 +23,7 @@ first.
 
 | Concern       | Tool                                                                                                                                                                             |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Runtime       | [Node.js](https://nodejs.org/) and [pnpm](https://pnpm.io/) (pinned via [mise](https://mise.jdx.dev/))                                                                           |
+| Runtime       | [Bun](https://bun.com/), with [pnpm](https://pnpm.io/) as package manager (pinned via [mise](https://mise.jdx.dev/))                                                             |
 | Framework     | [Astro](https://astro.build/), static output                                                                                                                                     |
 | CSS reset     | [`@kcstyles/reset.css`](https://www.npmjs.com/package/@kcstyles/reset.css)                                                                                                       |
 | Lint / format | [Biome](https://biomejs.dev/) with `@kcconfigs/biome`                                                                                                                            |
@@ -33,9 +32,13 @@ first.
 | Hosting       | Cloudflare Workers static assets via [Wrangler](https://developers.cloudflare.com/workers/wrangler/)                                                                             |
 | CI / CD       | GitHub Actions                                                                                                                                                                   |
 
-`mise.toml` pins the Node.js and pnpm versions, `package.json` repeats the pnpm
-version as `packageManager`, and CI installs both with
-[`pnpm/setup`](https://github.com/pnpm/setup). `pnpm-workspace.yaml` saves exact
+pnpm installs dependencies and runs package scripts; every script that starts
+`astro` or `vitest` does it through `bunx --bun`, so they run on Bun instead of
+Node.js. `mise.toml` pins the Bun and pnpm versions, `package.json` repeats the
+pnpm version as `packageManager`, and CI installs both with
+[`pnpm/setup`](https://github.com/pnpm/setup). Wrangler is the exception: it
+only deploys, and runs on Node.js 22 or later (preinstalled on GitHub's
+runners; install it locally to deploy from your machine). `pnpm-workspace.yaml` saves exact
 versions and lists the dependencies allowed to run build scripts (`esbuild`,
 `workerd`).
 
@@ -55,7 +58,7 @@ versions and lists the dependencies allowed to run build scripts (`esbuild`,
    cd my-app
    ```
 
-2. Install the pinned toolchain (Node.js and pnpm) with mise, or install them
+2. Install the pinned toolchain (Bun and pnpm) with mise, or install them
    yourself (see `mise.toml` for the expected versions):
 
    ```bash
@@ -127,7 +130,7 @@ favicons in `public/`.
 ├── GET_START.md         # setup prompt for an AI agent
 ├── astro.config.ts      # static output, file-format pages, no trailing slash
 ├── biome.json           # lint / format config
-├── mise.toml            # pinned tool versions (Node.js, pnpm)
+├── mise.toml            # pinned tool versions (Bun, pnpm)
 ├── pnpm-workspace.yaml  # pnpm settings: exact versions, allowed build scripts
 ├── tsconfig.json        # TypeScript config (checks every .ts and .astro file)
 ├── vitest.config.ts     # Vitest through Astro's Vite config
@@ -272,7 +275,7 @@ makes `/about/` a 404, in `dev` as in production.
 
 ## Testing
 
-Tests run with Vitest and live in `tests/`, mirroring
+Tests run with Vitest on Bun and live in `tests/`, mirroring
 `src/`; `pnpm run check` typechecks them too. `vitest.config.ts` wraps Astro's
 `getViteConfig`, so tests import `.astro` files directly and render them with
 the Container API:
