@@ -17,7 +17,7 @@ Before you start, have ready:
 - A GitHub account, with the [GitHub CLI](https://cli.github.com/) installed
 - A Cloudflare account (free plan is enough)
 - A Google account, if you want Google Tag Manager
-- [mise](https://mise.jdx.dev/) or [Bun](https://bun.com/) installed
+- [mise](https://mise.jdx.dev/), or [Node.js](https://nodejs.org/) and [pnpm](https://pnpm.io/), installed
 
 The agent asks you for a few values and pauses for steps only you can do:
 logging in to Cloudflare in the browser, typing the API token into a hidden
@@ -28,7 +28,7 @@ through the agent.
 
 ````markdown
 You are setting up a web project in the current directory, which is a copy of
-the template repository `kamontat/bun-astro-template` (Astro + Bun, deployed to
+the template repository `kamontat/bun-astro-template` (Astro on Node.js with pnpm, deployed to
 Cloudflare Workers static assets through GitHub Actions, with optional Google
 Tag Manager). Work through the phases below in order. Stop and ask me whenever
 a step needs my input or fails in a way you cannot fix. Do not skip
@@ -52,7 +52,7 @@ and wait.
   scopes. If not, ask me to run `gh auth login` or
   `gh auth refresh -s workflow`. If several accounts are listed, make sure
   the active one can write to my repository.
-- `mise --version` (preferred) or `bun --version`.
+- `mise --version` (preferred), or `node --version` and `pnpm --version`.
 
 ## Phase 1: Find out which repository this is
 
@@ -101,9 +101,8 @@ Ask me for these values in one message, and suggest defaults:
 
    This commit is replaced by the real setup commit in Phase 7, so do not
    push yet.
-2. Install the pinned toolchain with `mise install` (skip if only Bun is
-   available). Do not run `bun install` yet: it fails until Phase 4 replaces
-   `<TODO>`, which is not a valid package name.
+2. Install the pinned toolchain with `mise install` (skip if Node.js and pnpm
+   are installed without mise). Dependencies are installed in Phase 4.
 3. Delete `GET_START.md`; it only applies to the template.
 
 ## Phase 4: Replace template placeholders
@@ -119,7 +118,6 @@ Replace them as follows:
 | File                                      | Change                                                                                                              |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | `package.json`                            | `"name": "<TODO>"` to `"name": "PROJECT_NAME"`                                                                      |
-| `bun.lock`                                | `"name": "<TODO>"` to `"name": "PROJECT_NAME"`                                                                      |
 | `wrangler.jsonc`                          | `"name": "<TODO>"` to `"name": "PROJECT_NAME"`                                                                      |
 | `src/pages/index.astro`                   | `<BaseLayout title="TODO">` to `<BaseLayout title="PAGE_TITLE">` (plain `TODO`, so the grep above does not list it) |
 | `.github/workflows/deploy-preview.yml`    | `environment.url`: fix in Phase 5 once the workers.dev subdomain is known                                           |
@@ -144,10 +142,10 @@ build contains no GTM code at all.
 Then verify locally. All four must pass before going further:
 
 ```bash
-bun install
-bun run check
-bun run test
-bun run build
+pnpm install
+pnpm run check
+pnpm run test
+pnpm run build
 ```
 
 Confirm the grep prints nothing except the two workflow URLs still pending
@@ -158,20 +156,20 @@ Phase 5.
 1. Log in to Wrangler. This opens a browser, so ask me to run it myself:
 
    ```
-   ! bunx wrangler login
+   ! pnpm exec wrangler login
    ```
 
-   Then run `bunx wrangler whoami` and read the account ID from the output.
+   Then run `pnpm exec wrangler whoami` and read the account ID from the output.
    If I have several accounts, ask which one to use. Call it ACCOUNT_ID.
 2. Create the Worker with a first deploy from this machine. The API token in
    the next step is scoped to this one Worker, and a Worker-scoped token can
    deploy a Worker but not create it, so the Worker must exist first:
 
    ```bash
-   CLOUDFLARE_ACCOUNT_ID=ACCOUNT_ID bunx wrangler deploy
+   CLOUDFLARE_ACCOUNT_ID=ACCOUNT_ID pnpm exec wrangler deploy
    ```
 
-   This runs `bun run build` and uploads `dist/` using my `wrangler login`
+   This runs `pnpm run build` and uploads `dist/` using my `wrangler login`
    session. It also attaches CUSTOM_DOMAIN when one is set. The site is live
    from here, with Google Tag Manager off; the CI deploy in Phase 7 replaces it.
    Read the `workers.dev` URL from the output,

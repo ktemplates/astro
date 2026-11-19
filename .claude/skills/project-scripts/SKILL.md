@@ -1,6 +1,6 @@
 ---
 name: project-scripts
-description: Use when adding or changing a package script, adding a file under scripts/, running the dev server, or fixing a `bun run check` (astro check or Biome) failure. Covers where a script lives, what each check reads, and how TypeScript and Biome strictness interact.
+description: Use when adding or changing a package script, adding a file under scripts/, running the dev server, or fixing a `pnpm run check` (astro check or Biome) failure. Covers where a script lives, what each check reads, and how TypeScript and Biome strictness interact.
 ---
 
 # Scripts and checks
@@ -8,26 +8,29 @@ description: Use when adding or changing a package script, adding a file under s
 ## Where a package script lives
 
 A script that is just a command is that command in `package.json` — `astro dev`,
-`astro check`, `biome check`, `vitest run`. `bun run` puts `node_modules/.bin` on `PATH`, so
-the bare binary name resolves; don't write `bunx` inside a script, and don't wrap a single
-command in a file under `scripts/`. Arguments are forwarded by `bun run` itself, which is
-what keeps `bun run test -t "renders"` and `bun run dev --port 4000` working.
+`astro check`, `biome check`, `vitest run`. `pnpm run` puts `node_modules/.bin` on `PATH`, so
+the bare binary name resolves; don't write `pnpm exec` or `npx` inside a script, and don't wrap a single
+command in a file under `scripts/`. Arguments are forwarded by `pnpm run` itself, which is
+what keeps `pnpm run test -t "renders"` and `pnpm run dev --port 4000` working.
 
-**Every script runs on the Bun runtime.** `astro` and `vitest` ship with a `node` shebang, so
-by default `bun run` starts them under Node.js. `bunfig.toml` sets `[run] bun = true`, the
-config form of `bun --bun` that the Bun Astro guide recommends, so they run on Bun instead
-and no Node.js install is needed. Keep it; a test that only passes on one runtime is a bug to
-report, not a reason to drop the flag.
+**Every script runs on Node.js**, the runtime Astro, Vitest and Wrangler target. `mise.toml`
+pins Node.js and pnpm; `package.json` repeats the pnpm version as `packageManager`, and CI
+installs the same Node.js version through `pnpm/setup`'s `runtime` input, so bump all three
+together (`tests/config/toolchain.test.ts` fails when they drift). `pnpm-workspace.yaml`
+saves exact versions and lists in `allowBuilds` the dependencies allowed to run install
+scripts; a new one that needs its script fails `pnpm install` with `ERR_PNPM_IGNORED_BUILDS`
+until `pnpm approve-builds <name>` adds it.
 
-`check` is the one composite: `bun run check:type && bun run check:biome`, so a type error
+`check` is the one composite: `pnpm run check:type && pnpm run check:biome`, so a type error
 stops before Biome runs. `format` is `biome check --unsafe --write` — read the diff after,
 since unsafe fixes can change behaviour.
 
-`astro` is a passthrough to the Astro CLI, so `bun run astro add <integration>` and
-`bun run astro sync` run on Bun like everything else.
+`astro` is a passthrough to the Astro CLI, so `pnpm run astro add <integration>` and
+`pnpm run astro sync` work without an extra script.
 
 A script that is a *program* (it fetches, generates or migrates something) is a file under
-`scripts/`, run with `bun scripts/<name>.ts` from a package script. No page imports it, so
+`scripts/`, run with `node scripts/<name>.ts` from a package script (Node.js strips the types, so
+use only erasable TypeScript syntax: no `enum` or parameter properties). No page imports it, so
 it never reaches the bundle, and `check:type` covers it without any config change.
 
 Where code lives: pages in `src/pages/`, layouts in `src/layouts/`, components in
@@ -38,7 +41,7 @@ Where code lives: pages in `src/pages/`, layouts in `src/layouts/`, components i
 ## What `check:type` reads
 
 `check:type` is `astro check`, which runs TypeScript over every `.astro` file *and* every
-file `tsconfig.json` includes. `tsconfig.json` extends `@kcconfigs/tsconfig/bun` and then
+file `tsconfig.json` includes. `tsconfig.json` extends `@kcconfigs/tsconfig` (Node.js types) and then
 `astro/tsconfigs/strictest` (the later preset wins where they overlap), and includes
 `.astro/types.d.ts` plus everything under the root, with `node_modules/` and `dist/`
 excluded. So `src/`, `tests/` and `scripts/` are all typechecked with no `include` to
@@ -79,7 +82,7 @@ so `biome.json` turns off the unused-import rules there (see the `project-compon
 
 ## Dev server
 
-`bun run dev` serves on <http://localhost:4321> with hot reload; `bun run preview` serves
+`pnpm run dev` serves on <http://localhost:4321> with hot reload; `pnpm run preview` serves
 the built `dist/` on the same port without rebuilding — build first. Both take `--port`
 and `--host`. Unlike a plain static server, `dev` already 404s unknown paths and the
 trailing-slash form of a route, the same as production.

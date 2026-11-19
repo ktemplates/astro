@@ -53,8 +53,8 @@ Dynamic routes (`[slug].astro`) need `getStaticPaths()` because the site is buil
    same as production).
 4. Files no page imports (favicon, `robots.txt`, images used by URL) go in `public/` and are
    copied to the root of `dist/` as-is.
-5. Run `bun run build` and confirm the page appears in the `generating static routes` list,
-   then `bun run preview` and open it.
+5. Run `pnpm run build` and confirm the page appears in the `generating static routes` list,
+   then `pnpm run preview` and open it.
 
 ## Example — a page composed from the tiers
 
@@ -73,7 +73,7 @@ const links = [
 ]
 ---
 
-<ArticleLayout title="Hello, Bun" links={links}>
+<ArticleLayout title="Hello, Astro" links={links}>
 	<p>This page was built with Astro and deployed to Cloudflare Workers.</p>
 	<Button variant="ghost">Share</Button>
 

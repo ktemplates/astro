@@ -186,7 +186,7 @@ so `astro check` accepts them; without it, `<div row>` is a type error.
 Biome lints and formats only the frontmatter of an `.astro` file. It cannot see the template,
 so an import used only there looks unused; `biome.json` turns off `noUnusedImports`,
 `noUnusedVariables`, `useConst` and `useImportType` for `**/*.astro`. Without that override,
-`bun run format` deletes component imports. Don't remove it.
+`pnpm run format` deletes component imports. Don't remove it.
 
 ## Testing
 
@@ -201,8 +201,8 @@ import Greeting from "#components/atoms/Greeting.astro";
 
 test("renders the name", async () => {
 	const container = await AstroContainer.create();
-	const html = await container.renderToString(Greeting, { props: { name: "Bun" } });
-	expect(html).toMatch(/<p[^>]*>Hello, Bun!<\/p>/);
+	const html = await container.renderToString(Greeting, { props: { name: "Astro" } });
+	expect(html).toMatch(/<p[^>]*>Hello, Astro!<\/p>/);
 });
 ```
 

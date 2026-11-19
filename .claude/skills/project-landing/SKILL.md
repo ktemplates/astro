@@ -15,7 +15,7 @@ commit: changelog entry first, then merge, then cleanup, ending back on an up-to
 
 1. **Catch up with main, in the worktree.** `git fetch origin` then
    `git merge origin/main`, so the changelog edit sees entries other PRs landed. Resolve
-   conflicts, rerun `bun run check` and `bun run test`.
+   conflicts, rerun `pnpm run check` and `pnpm run test`.
 2. **Changelog entry, on the PR branch.** Edit `CHANGELOG.md` following
    the `project-changelog` skill, which owns the entry format (`## YYYY-MM-DD: <title>` with
    BREAKING CHANGES, Features, Improvements, Bug fixes and Decisions). The date is today's.
