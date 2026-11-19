@@ -1,11 +1,11 @@
-# bun-astro-template
+# ktemplates/astro
 
 A starter template for websites built with [Astro](https://astro.build/),
 run on [Node.js](https://nodejs.org/) with [pnpm](https://pnpm.io/), and deployed to
 [Cloudflare Workers](https://developers.cloudflare.com/workers/static-assets/)
 as static assets, with optional server rendering through the Cloudflare
 adapter. It started as a sibling of
-[bun-lit-template](https://github.com/kamontat/bun-lit-template), with the same
+[ktemplates/bun-lit](https://github.com/ktemplates/bun-lit), with the same
 tooling, CI and deploy setup, but runs on Node.js because Astro targets Node.js
 first.
 
@@ -56,7 +56,7 @@ versions and lists the dependencies allowed to run build scripts (`esbuild`,
    or clone it directly:
 
    ```bash
-   git clone https://github.com/kamontat/bun-astro-template.git my-app
+   git clone https://github.com/ktemplates/astro.git my-app
    cd my-app
    ```
 

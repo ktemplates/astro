@@ -2,7 +2,7 @@
 
 What changed in this project and why, newest first.
 
-## 2026-11-20: Node.js and pnpm instead of Bun, and setup choices for rendering and UI framework
+## 2026-11-20: Node.js and pnpm instead of Bun, and setup choices for rendering and UI framework, and the ktemplates/astro name
 
 ### BREAKING CHANGES
 
@@ -37,6 +37,10 @@ What changed in this project and why, newest first.
   `engines`, `mise.toml` and the workflows, or when Bun files come back.
 - `pnpm install` works before the `<TODO>` package name is replaced, so the setup prompt no
   longer warns about it.
+- The README and `GET_START.md` call the template `ktemplates/astro` and its sibling
+  `ktemplates/bun-lit`, the repositories' current names, for the title, clone URL, origin
+  check and initial commit message. `tests/docs/repository.test.ts` fails if the old
+  `kamontat/bun-astro-template` or `bun-lit-template` names come back.
 
 ### Decisions
 
