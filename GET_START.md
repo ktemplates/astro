@@ -17,7 +17,12 @@ Before you start, have ready:
 - A GitHub account, with the [GitHub CLI](https://cli.github.com/) installed
 - A Cloudflare account (free plan is enough)
 - A Google account, if you want Google Tag Manager
-- [mise](https://mise.jdx.dev/) or [Bun](https://bun.com/) installed
+- [mise](https://mise.jdx.dev/), or [Node.js](https://nodejs.org/) and [pnpm](https://pnpm.io/), installed
+- Two decisions, which the agent asks about and explains if you are unsure:
+  - a static site (every page built ahead of time, interactivity in the
+    browser) or server rendering (API routes and per-request pages running
+    in the Cloudflare Worker)
+  - a UI framework (React, Svelte, Vue, …) or plain Astro components
 
 The agent asks you for a few values and pauses for steps only you can do:
 logging in to Cloudflare in the browser, typing the API token into a hidden
@@ -28,7 +33,7 @@ through the agent.
 
 ````markdown
 You are setting up a web project in the current directory, which is a copy of
-the template repository `kamontat/bun-astro-template` (Astro + Bun, deployed to
+the template repository `kamontat/bun-astro-template` (Astro on Node.js with pnpm, deployed to
 Cloudflare Workers static assets through GitHub Actions, with optional Google
 Tag Manager). Work through the phases below in order. Stop and ask me whenever
 a step needs my input or fails in a way you cannot fix. Do not skip
@@ -52,7 +57,7 @@ and wait.
   scopes. If not, ask me to run `gh auth login` or
   `gh auth refresh -s workflow`. If several accounts are listed, make sure
   the active one can write to my repository.
-- `mise --version` (preferred) or `bun --version`.
+- `mise --version` (preferred), or `node --version` and `pnpm --version`.
 
 ## Phase 1: Find out which repository this is
 
@@ -79,7 +84,37 @@ Ask me for these values in one message, and suggest defaults:
    `workers.dev` URL.
 4. GTM: yes or no, do I want Google Tag Manager? Default: yes. I will create
    the container in Phase 6, so you do not need the ID yet.
-5. Only for a direct clone: GITHUB_OWNER, REPO_NAME and visibility (see
+5. UI_FRAMEWORK: which UI framework, if any, interactive components are
+   written in. Default: `none`. Offer these, with one line each so I can
+   choose:
+   - `none`: plain `.astro` components, with a `<script>` tag for
+     interactivity. Ships the least JavaScript and needs nothing extra; best
+     for content sites and small widgets. A framework can still be added
+     later with the same steps.
+   - `react`, `preact`, `svelte`, `vue`, `solid-js`: official Astro
+     integrations. Pick one when the site needs stateful interactive islands
+     (forms, dashboards, client-side state) or when I want to reuse
+     components or libraries written for that framework. `preact` is the
+     small React-compatible option.
+   - Any other Astro integration name, if I ask for one.
+
+   Recommend one framework at most. React, Preact and Solid all use JSX, and
+   mixing two of them needs per-folder `include` settings in
+   `astro.config.ts`.
+6. RENDERING: `static` or `server`. Default: `static`. Explain the
+   difference so I can choose:
+   - `static`: every page is built to HTML at build time and served as
+     static assets, with client-side JavaScript (and UI_FRAMEWORK islands)
+     for interactivity. No server code runs, so there is nothing to scale
+     or secure at runtime. Right for content sites, docs, landing pages and
+     apps that call someone else's API from the browser.
+   - `server`: adds the Cloudflare adapter so chosen routes render on each
+     request inside the Worker, for API endpoints, form handling, auth,
+     per-user pages, or reading secrets and Cloudflare bindings (KV, D1,
+     R2). Pages not opted in stay static. The server code runs on
+     Cloudflare's Workers runtime, not Node.js, so Node-only packages may
+     not work there.
+7. Only for a direct clone: GITHUB_OWNER, REPO_NAME and visibility (see
    Phase 1).
 
 ## Phase 3: Prepare the repository
@@ -101,9 +136,9 @@ Ask me for these values in one message, and suggest defaults:
 
    This commit is replaced by the real setup commit in Phase 7, so do not
    push yet.
-2. Install the pinned toolchain with `mise install` (skip if only Bun is
-   available). Do not run `bun install` yet: it fails until Phase 4 replaces
-   `<TODO>`, which is not a valid package name.
+2. Install the toolchain pinned in `package.json` `devEngines` with
+   `mise install` (skip without mise: pnpm downloads the pinned pnpm and
+   Node.js itself). Dependencies are installed in Phase 4.
 3. Delete `GET_START.md`; it only applies to the template.
 
 ## Phase 4: Replace template placeholders
@@ -119,7 +154,6 @@ Replace them as follows:
 | File                                      | Change                                                                                                              |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | `package.json`                            | `"name": "<TODO>"` to `"name": "PROJECT_NAME"`                                                                      |
-| `bun.lock`                                | `"name": "<TODO>"` to `"name": "PROJECT_NAME"`                                                                      |
 | `wrangler.jsonc`                          | `"name": "<TODO>"` to `"name": "PROJECT_NAME"`                                                                      |
 | `src/pages/index.astro`                   | `<BaseLayout title="TODO">` to `<BaseLayout title="PAGE_TITLE">` (plain `TODO`, so the grep above does not list it) |
 | `.github/workflows/deploy-preview.yml`    | `environment.url`: fix in Phase 5 once the workers.dev subdomain is known                                           |
@@ -141,13 +175,125 @@ deploying. Keep `src/lib/gtm.ts` and the `<script>` in
 `src/layouts/BaseLayout.astro` even if GTM is "no": without a container ID the
 build contains no GTM code at all.
 
-Then verify locally. All four must pass before going further:
+Install dependencies with `pnpm install`.
+
+If UI_FRAMEWORK is not `none`, add it now:
+
+1. Run `pnpm run astro add UI_FRAMEWORK --yes`. It installs the integration
+   and the framework, registers it in `astro.config.ts`, and, for JSX
+   frameworks, sets `jsx` and `jsxImportSource` in `tsconfig.json`. It may
+   also create a framework config file such as `svelte.config.js`; keep it.
+2. The project pins exact versions (`saveExact` in `pnpm-workspace.yaml`),
+   but `astro add` writes `^` ranges. Remove every `^` it added in
+   `package.json`, move any `@types/*` packages it put in `dependencies` to
+   `devDependencies`, then run `pnpm install` again. If it fails with
+   `ERR_PNPM_IGNORED_BUILDS`, run `pnpm approve-builds <package>` for the
+   packages listed and install again.
+3. Run `pnpm run format`; `astro add` rewrites config files with spaces.
+4. Prove the renderer works with one small interactive island: a
+   `Counter` component in `src/components/atoms/` written in UI_FRAMEWORK
+   (a button showing `Count: {count}` that increments on click, with a
+   `start` prop), rendered from `src/pages/index.astro` below `HelloWorld` as
+   `<Counter start={0} client:visible />`. Test it in
+   `tests/pages/index.test.ts`: the Container API only renders `.astro`
+   files, so render the page, and load the framework's renderer from its
+   container entry point:
+
+   ```ts
+   import { loadRenderers } from "astro:container"
+   import { getContainerRenderer } from "@astrojs/UI_FRAMEWORK/container-renderer"
+   import { experimental_AstroContainer as AstroContainer } from "astro/container"
+   import { expect, test } from "vitest"
+
+   import Index from "../../src/pages/index.astro"
+
+   test("index renders the Counter island", async () => {
+   	const renderers = await loadRenderers([getContainerRenderer()])
+   	const container = await AstroContainer.create({ renderers })
+   	const html = await container.renderToString(Index)
+   	expect(html).toMatch(/<astro-island[^>]*>.*Count: (<!-- -->)?0/s)
+   })
+   ```
+
+   (`solid-js` uses `@astrojs/solid-js/container-renderer`.) Import
+   `getContainerRenderer` from `/container-renderer`, not the package root,
+   where it is deprecated.
+5. `astro check` typechecks `.astro`, `.ts` and `.tsx` files, but not the
+   `<script>` block of `.svelte` or `.vue` files. For those, tell me that
+   `svelte-check` or `vue-tsc` would be needed for full type checking, and
+   leave adding it to me.
+
+If RENDERING is `server`, add on-demand rendering:
+
+1. Run `pnpm run astro add cloudflare --yes`. It installs
+   `@astrojs/cloudflare`, sets `adapter` in `astro.config.ts`, adds a
+   `generate-types` script (`wrangler types`) and includes
+   `worker-configuration.d.ts` in `tsconfig.json`. Keep all of that, and
+   pin the new dependency exactly and run `pnpm run format` as for
+   UI_FRAMEWORK above.
+2. In `astro.config.ts`, keep `output: "static"` (pages stay prerendered
+   unless a route opts out), pass `imageService: "compile"` to the adapter,
+   and add `session: false`:
+
+   ```ts
+   adapter: cloudflare({ imageService: "compile" }),
+   session: false,
+   ```
+
+   Without these the Worker also needs a KV namespace (`SESSION`) and an
+   Images binding, which Wrangler provisions on deploy and the Worker-scoped
+   API token from Phase 5 cannot create. Turn them on later, with the
+   matching token permissions, when a route needs `Astro.session` or
+   on-request image resizing.
+3. Point `wrangler.jsonc` at the adapter's Worker entry and bind the static
+   assets to it:
+
+   ```jsonc
+   "main": "@astrojs/cloudflare/entrypoints/server",
+   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+   "assets": { "binding": "ASSETS", "directory": "dist" },
+   ```
+
+   The build now writes `dist/client/` (static files) and `dist/server/`
+   (the Worker, with a generated `wrangler.json` that `wrangler deploy`
+   picks up automatically).
+4. Prove it with one API route, `src/pages/api/health.ts`:
+
+   ```ts
+   import type { APIRoute } from "astro"
+
+   // Rendered on request by the Worker, not at build time.
+   export const prerender = false
+
+   export const GET: APIRoute = () => Response.json({ status: "ok" })
+   ```
+
+   and `tests/pages/api/health.test.ts`, which calls the handler directly
+   (the Container API's types only accept `.astro` components):
+
+   ```ts
+   import type { APIContext } from "astro"
+   import { expect, test } from "vitest"
+
+   import { GET, prerender } from "../../../src/pages/api/health"
+
+   test("/api/health renders on request", () => {
+   	expect(prerender).toBe(false)
+   })
+
+   test("GET /api/health responds ok", async () => {
+   	const response = await GET({} as APIContext)
+   	expect(response.status).toBe(200)
+   	expect(await response.json()).toEqual({ status: "ok" })
+   })
+   ```
+
+Then verify locally. All three must pass before going further:
 
 ```bash
-bun install
-bun run check
-bun run test
-bun run build
+pnpm run check
+pnpm run test
+pnpm run build
 ```
 
 Confirm the grep prints nothing except the two workflow URLs still pending
@@ -158,20 +304,20 @@ Phase 5.
 1. Log in to Wrangler. This opens a browser, so ask me to run it myself:
 
    ```
-   ! bunx wrangler login
+   ! pnpm exec wrangler login
    ```
 
-   Then run `bunx wrangler whoami` and read the account ID from the output.
+   Then run `pnpm exec wrangler whoami` and read the account ID from the output.
    If I have several accounts, ask which one to use. Call it ACCOUNT_ID.
 2. Create the Worker with a first deploy from this machine. The API token in
    the next step is scoped to this one Worker, and a Worker-scoped token can
    deploy a Worker but not create it, so the Worker must exist first:
 
    ```bash
-   CLOUDFLARE_ACCOUNT_ID=ACCOUNT_ID bunx wrangler deploy
+   CLOUDFLARE_ACCOUNT_ID=ACCOUNT_ID pnpm exec wrangler deploy
    ```
 
-   This runs `bun run build` and uploads `dist/` using my `wrangler login`
+   This runs `pnpm run build` and uploads `dist/` using my `wrangler login`
    session. It also attaches CUSTOM_DOMAIN when one is set. The site is live
    from here, with Google Tag Manager off; the CI deploy in Phase 7 replaces it.
    Read the `workers.dev` URL from the output,
@@ -299,7 +445,20 @@ previews never send data.
    ```
 
    A new Worker or custom domain can take a minute to resolve; retry a few
-   times before treating it as a failure.
+   times before treating it as a failure. If UI_FRAMEWORK is not `none`, also
+   confirm the Counter island shipped:
+
+   ```bash
+   curl -fsS https://PRODUCTION_URL | grep -o "<astro-island" | head -1
+   ```
+
+   If RENDERING is `server`, confirm the Worker answers on request:
+
+   ```bash
+   curl -fsS https://PRODUCTION_URL/api/health
+   ```
+
+   Expect `{"status":"ok"}`.
 4. If GTM was set up, verify the container ID was built in. Astro inlines
    the small GTM script into the page, so it is in the HTML:
 
@@ -319,8 +478,13 @@ Finish with a short summary:
 - Repository URL
 - Production URL (and the preview URL pattern for pull requests)
 - Google Tag Manager: container ID, or "off" with how to turn it on later
+- Rendering: `static`, or `server` with the `/api/health` URL and a note
+  that sessions and the Images binding are off
+- UI framework: the integration added, or "none" with how to add one later
+  (`pnpm run astro add <name>`, then the Phase 4 steps)
 - What I still need to do by hand, if anything (for example, a custom domain
   waiting on DNS, or adding tags in GTM)
 - Next steps: open a pull request to see a preview deploy, then replace the
-  `HelloWorld` component with real content (see the README)
+  `HelloWorld` component (and the `Counter` island, if any) with real content
+  (see the README)
 ````

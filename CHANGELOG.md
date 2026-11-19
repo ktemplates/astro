@@ -2,6 +2,57 @@
 
 What changed in this project and why, newest first.
 
+## 2026-11-20: Node.js and pnpm instead of Bun, and setup choices for rendering and UI framework
+
+### BREAKING CHANGES
+
+- Bun is gone: install Node.js and pnpm (or let mise read them from `package.json`) and run
+  `pnpm install` and `pnpm run <script>` instead of `bun install` and `bun run <script>`.
+  `bun.lock`, `bunfig.toml` and `@types/bun` are removed, so `Bun.*` APIs no longer type-check.
+- `mise.toml` no longer pins tool versions; the Node.js and pnpm versions now live only in
+  `package.json` `devEngines`.
+
+### Features
+
+- `GET_START.md` asks whether the site is `static` (default) or `server`. For `server` the
+  agent adds the Cloudflare adapter so routes with `export const prerender = false` run in
+  the Worker, wires `wrangler.jsonc` to the adapter's entry with an `ASSETS` binding, and
+  proves it with a `/api/health` route, its test and a live check.
+- `GET_START.md` asks for a UI framework (`none` by default, or `react`, `preact`, `svelte`,
+  `vue`, `solid-js`). A chosen framework is added with `astro add`, re-pinned to exact
+  versions, and proven by a `Counter` island tested through its container renderer.
+- The README and the `project-components`, `project-pages` and `project-deploy` skills cover
+  framework components and on-demand routes, including how to test each.
+
+### Improvements
+
+- The toolchain is pinned in one place, `package.json`: `devEngines.runtime` (Node.js
+  24.22.3) and `devEngines.packageManager` (pnpm 12.22.0) with `onFail: "download"`, plus
+  `volta.node` and an `engines.node` range. mise reads them through
+  `idiomatic_version_file_enable_tools`, and CI's `pnpm/setup` step reads them too, with no
+  version in any workflow.
+- `pnpm-workspace.yaml` saves exact versions and allows only `esbuild` and `workerd` to run
+  install scripts.
+- `tests/config/toolchain.test.ts` fails when the pins drift between `devEngines`, `volta`,
+  `engines`, `mise.toml` and the workflows, or when Bun files come back.
+- `pnpm install` works before the `<TODO>` package name is replaced, so the setup prompt no
+  longer warns about it.
+
+### Decisions
+
+- Node.js over Bun because Astro, Vitest and Wrangler target Node.js. Bun as runtime with
+  pnpm as package manager was tried and reverted: with the Cloudflare adapter, `astro build`
+  on Bun hung for over five minutes, where Node.js took about a second, and server code runs
+  on Cloudflare's Workers runtime either way.
+- Node.js 24 rather than 26, because `@kcconfigs/tsconfig` expects `@types/node` `^24`.
+- Server rendering uses the Cloudflare adapter rather than a Bun or Node.js server, so the
+  existing Workers deploy keeps working. The setup turns off sessions (`session: false`) and
+  the Images binding (`imageService: "compile"`), because the Worker-scoped deploy token
+  cannot provision the KV namespace and Images binding they need.
+- Version pinning follows kc-workspace/kcws: `package.json` `devEngines` is the single
+  source, rather than `mise.toml` plus a `packageManager` field and a workflow `runtime`
+  input that had to be kept in sync.
+
 ## 2026-11-06: Dependency patch upgrades and Biome formatting for Astro files, and atomic design components with project skills
 
 ### BREAKING CHANGES

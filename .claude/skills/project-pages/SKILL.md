@@ -1,6 +1,6 @@
 ---
 name: project-pages
-description: Use when adding or editing a page or route under src/pages/ (the atomic pages tier), writing page copy, linking between pages, or when a page builds but paints unstyled, has no Google Tag Manager, or 404s after deploy.
+description: Use when adding or editing a page, route or API endpoint under src/pages/ (the atomic pages tier), opting a route out of prerendering, writing page copy, linking between pages, or when a page builds but paints unstyled, has no Google Tag Manager, or 404s after deploy.
 ---
 
 # Pages
@@ -27,7 +27,33 @@ lands at `dist/about.html` and Cloudflare's static assets serve it at `/about`. 
 names a page: a new file is picked up with no other edit.
 
 Dynamic routes (`[slug].astro`) need `getStaticPaths()` because the site is built with
-`output: "static"`; without it `astro build` fails.
+`output: "static"`; without it `astro build` fails. The exception is an on-demand route (next
+section), which reads `Astro.params` per request instead.
+
+## On-demand routes and API endpoints
+
+Only when `astro.config.ts` has the Cloudflare `adapter` (set up by `GET_START.md` when the
+user chose server rendering). Without it, stop and ask the user before adding one; it changes
+the deploy (see the `project-deploy` skill).
+
+`output` stays `"static"`, so every route is still prerendered unless it opts out with:
+
+```ts
+export const prerender = false
+```
+
+An opted-out `.astro` page renders per request inside the Worker and can read
+`Astro.request`, cookies and `Astro.locals.runtime.env` (secrets and bindings). An endpoint is
+a `.ts` file under `src/pages/` exporting `GET`, `POST`, … as `APIRoute` handlers that return a
+`Response`; `src/pages/api/health.ts` answers `/api/health`. The code runs on Cloudflare's
+Workers runtime with `nodejs_compat`, not Node.js, so check a package works on Workers before
+using it. Sessions (`session: false`) and the Images binding (`imageService: "compile"`) are
+off; turning either on adds a binding that the deploy token needs permission to provision.
+
+Test an endpoint by importing its handler and calling it with a stub context
+(`GET({} as APIContext)`), as `tests/pages/api/health.test.ts` does; the Container API's
+types only accept `.astro` components. `tests/pages/pages.test.ts` only checks `.astro` pages,
+so endpoints need no layout.
 
 ## Steps
 
@@ -53,8 +79,8 @@ Dynamic routes (`[slug].astro`) need `getStaticPaths()` because the site is buil
    same as production).
 4. Files no page imports (favicon, `robots.txt`, images used by URL) go in `public/` and are
    copied to the root of `dist/` as-is.
-5. Run `bun run build` and confirm the page appears in the `generating static routes` list,
-   then `bun run preview` and open it.
+5. Run `pnpm run build` and confirm the page appears in the `generating static routes` list,
+   then `pnpm run preview` and open it.
 
 ## Example — a page composed from the tiers
 
@@ -73,7 +99,7 @@ const links = [
 ]
 ---
 
-<ArticleLayout title="Hello, Bun" links={links}>
+<ArticleLayout title="Hello, Astro" links={links}>
 	<p>This page was built with Astro and deployed to Cloudflare Workers.</p>
 	<Button variant="ghost">Share</Button>
 

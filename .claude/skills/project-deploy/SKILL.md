@@ -1,6 +1,6 @@
 ---
 name: project-deploy
-description: Use when changing `bun run build`, `bun run dev`, `bun run preview`, astro.config.ts, public/, wrangler.jsonc, the dist/ output shape, or anything under .github/workflows/ — including bumping a pinned action SHA or debugging a Cloudflare deploy.
+description: Use when changing `pnpm run build`, `pnpm run dev`, `pnpm run preview`, astro.config.ts, public/, wrangler.jsonc, the dist/ output shape, or anything under .github/workflows/ — including bumping a pinned action SHA or debugging a Cloudflare deploy.
 ---
 
 # Build and deployment
@@ -8,18 +8,29 @@ description: Use when changing `bun run build`, `bun run dev`, `bun run preview`
 ## Build
 
 `dev`, `build` and `preview` are each one `astro` command in `package.json`, with no wrapper
-script, run on the Bun runtime through `bunfig.toml`'s `[run] bun = true` (see the
-`project-scripts` skill). `astro build` renders every route under `src/pages/` (see the
+script, run on Node.js (see the `project-scripts` skill). `astro build` renders every route under `src/pages/` (see the
 `project-pages` skill) to static HTML in `dist/`, with bundled scripts and styles in
 `dist/_astro/` under hashed names, and copies `public/` to the root of `dist/` unchanged.
 Astro empties `dist/` before each build, so no stale file from an earlier build reaches a
 deploy.
 
-`astro.config.ts` fixes the output shape: `output: "static"` (no server code, no adapter),
+`astro.config.ts` fixes the output shape: `output: "static"` (everything prerendered),
 `build.format: "file"` (`about.astro` becomes `dist/about.html`, not `dist/about/index.html`)
 and `trailingSlash: "never"`. Cloudflare's static assets serve `about.html` at `/about`, so
-the three must change together. Adding an adapter or `output: "server"` turns the deploy
-into a Worker script, which `wrangler.jsonc` is not set up for.
+the three must change together.
+
+**With the Cloudflare adapter** (added by `GET_START.md` when the user chose server
+rendering), routes with `export const prerender = false` run in the Worker. The build then
+writes static files to `dist/client/` and the Worker to `dist/server/`, including a generated
+`dist/server/wrangler.json`; `wrangler deploy` and `versions upload` follow
+`.wrangler/deploy/config.json` to it automatically, so the workflows do not change.
+`wrangler.jsonc` must then carry `main: "@astrojs/cloudflare/entrypoints/server"`,
+`compatibility_flags: ["nodejs_compat", "global_fetch_strictly_public"]` and
+`assets.binding: "ASSETS"`. `astro.config.ts` keeps `session: false` and
+`imageService: "compile"` so the Worker needs no KV namespace or Images binding: the
+Worker-scoped deploy token cannot provision those. Enabling either means adding that
+permission to the `CLOUDFLARE_API_TOKEN` first. Without the adapter, do not add one or set
+`output: "server"` casually; ask the user, since it changes what runs in production.
 
 Small scripts and stylesheets are inlined into the HTML rather than written to `_astro/`
 (Vite's `assetsInlineLimit`), so a page can ship with no separate JS file at all. A grep for
@@ -37,14 +48,14 @@ its shape is part of the deployment contract, not a local convenience.
 ## Deployment
 
 The site is a Cloudflare Worker serving static assets. `wrangler.jsonc` sets
-`build.command` to `bun run build` and points `assets.directory` at `dist/`, so wrangler
+`build.command` to `pnpm run build` and points `assets.directory` at `dist/`, so wrangler
 runs the build itself and neither deploy workflow builds beforehand. Changing where the
 build writes means changing that file too.
 
 Three workflows, each pinning every action to a full commit SHA with the release tag in a
 trailing comment:
 
-- `main.yml` — every push: install, `bun run check`, `bun run build`, `bun run test`.
+- `main.yml` — every push: install, `pnpm run check`, `pnpm run build`, `pnpm run test`.
 - `deploy-preview.yml` — pull requests: `wrangler versions upload --preview-alias
   pr-<number>`, reporting into the `preview` environment.
 - `deploy-production.yml` — pushes to `main`: `wrangler deploy`, reporting into the
@@ -64,7 +75,10 @@ secrets, and grant `deployments: write` on the job rather than at the top — th
 with `permissions: {}` and hand back only what each job needs. Keep that shape in anything
 new.
 
-Bun's local version is pinned in `mise.toml`; keep any CI pin in sync with it.
+Every workflow sets up its toolchain with a `Set up runtime` step using `pnpm/setup` with
+`cache: true` and `require-lockfile: true` and no `runtime` input: it reads pnpm and Node.js
+from `package.json` `devEngines` and runs `pnpm install --frozen-lockfile`. Never pin a
+version in a workflow; `tests/config/toolchain.test.ts` fails on a `runtime:` input.
 
 A pinned SHA is bumped by resolving the tag again, never by hand:
 
@@ -97,7 +111,7 @@ because the bundler drops the call it can prove does nothing.
   with **Editor**. Check it is scoped to the Worker named in `wrangler.jsonc` (a renamed
   Worker needs a new token), lives in the `CLOUDFLARE_ACCOUNT_ID` account, and has
   **Workers Routes: Edit** on the zone when a custom domain is set. A Worker-scoped token
-  cannot create a Worker: a new Worker name needs one local `bunx wrangler deploy` under
+  cannot create a Worker: a new Worker name needs one local `pnpm exec wrangler deploy` under
   `wrangler login` first.
 - Worker name in the error is `<TODO>`: the template was never customized — see
   `GET_START.md`.

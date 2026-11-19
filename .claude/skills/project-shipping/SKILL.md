@@ -21,10 +21,10 @@ size or "just" are not permission. When they do skip one, say which in the PR te
 1. **Worktree.** Call `EnterWorktree` with a short kebab-case `name` describing the change
    (no `worktree-` prefix — the tool adds it). It creates `.claude/worktrees/<name>` on
    branch `worktree-<name>` from `origin/main`. Already inside a worktree for this change?
-   Keep using it. Then run `bun install` — a new worktree has no `node_modules`.
+   Keep using it. Then run `pnpm install` — a new worktree has no `node_modules`.
 2. **Test first.** REQUIRED SUB-SKILL: superpowers:test-driven-development. Write the
    failing test under `tests/`, mirroring the `src/` path
-   (`src/components/atoms/Foo.astro` → `tests/components/atoms/Foo.test.ts`), run `bun run test <file>` and
+   (`src/components/atoms/Foo.astro` → `tests/components/atoms/Foo.test.ts`), run `pnpm run test <file>` and
    watch it fail for the right reason.
 3. **Code.** Write the smallest code that passes. Follow the conventions in `README.md`:
    pages in `src/pages/` wrapped in `BaseLayout`, components in an atomic tier under `src/components/` (`atoms/`, `molecules/`, `organisms/`), shared
@@ -32,10 +32,10 @@ size or "just" are not permission. When they do skip one, say which in the PR te
    aliases.
 4. **Format, check, test, build.** All must pass before committing:
    ```sh
-   bun run format      # biome check --unsafe --write
-   bun run check       # astro check + biome check
-   bun run test
-   bun run build
+   pnpm run format      # biome check --unsafe --write
+   pnpm run check       # astro check + biome check
+   pnpm run test
+   pnpm run build
    ```
    A failure means fix and rerun the whole list, not commit and fix later. `format` rewrites
    files, so stage after it (`git add -A`), and check `git status` for stray files.
