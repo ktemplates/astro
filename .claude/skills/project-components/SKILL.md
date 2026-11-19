@@ -1,6 +1,6 @@
 ---
 name: project-components
-description: Use when writing, editing or moving an Astro component in src/components/ (atoms, molecules, organisms), deciding which atomic tier a component belongs to, adding client-side script, styling with src/styles/ or the CSS reset, writing a component test, or debugging a component that renders nothing, loses its styles or ships no JavaScript.
+description: Use when writing, editing or moving an Astro component in src/components/ (atoms, molecules, organisms), deciding which atomic tier a component belongs to, adding client-side script or a UI framework (React, Svelte, Vue, …) component, styling with src/styles/ or the CSS reset, writing a component test, or debugging a component that renders nothing, loses its styles or ships no JavaScript.
 ---
 
 # Components
@@ -10,7 +10,8 @@ Layouts are the `project-layouts` skill; routes are the `project-pages` skill.
 ## Atomic tiers
 
 Components follow Atomic Design. Every component is an `.astro` file in
-`src/components/<tier>/<PascalName>.astro`, and its tier limits which components it imports:
+`src/components/<tier>/<PascalName>.astro` (or a framework file, see
+[UI framework components](#ui-framework-components)), and its tier limits which components it imports:
 
 | Tier | Directory | Holds | May import |
 |---|---|---|---|
@@ -163,6 +164,43 @@ from builds without `PUBLIC_GTM_ID`. Declare every such variable on `ImportMetaE
 
 Frontmatter values do not reach a processed `<script>`. Pass them through a `data-*`
 attribute and read it from the element, or use `define:vars` (which implies `is:inline`).
+
+## UI framework components
+
+The template has no UI framework; check `integrations` in `astro.config.ts` before writing a
+`.tsx`, `.svelte` or `.vue` component. Without a matching integration it does not render, so
+either write an `.astro` component with a `<script>` or ask the user before adding one with
+`pnpm run astro add <name> --yes`. After `astro add`, strip the `^` it writes into
+`package.json` (versions are exact), move `@types/*` to `devDependencies`, run `pnpm install`
+and `pnpm run format`.
+
+A framework component sits in the same atomic tier folders, named `PascalName.<ext>`, and is
+used from an `.astro` file. It renders to static HTML and ships no JavaScript unless that use
+carries a `client:*` directive (`client:visible`, `client:load`, `client:idle`); props passed
+to an island must be serializable. A framework component cannot import an `.astro` component.
+
+The Container API renders only `.astro` files, so test a framework component through the
+`.astro` component or page that uses it, with the framework's renderer loaded. Import
+`getContainerRenderer` from `@astrojs/<name>/container-renderer`; the package root export is
+deprecated:
+
+```ts
+import { loadRenderers } from "astro:container";
+import { getContainerRenderer } from "@astrojs/react/container-renderer";
+import { experimental_AstroContainer as AstroContainer } from "astro/container";
+import { expect, test } from "vitest";
+import CounterCard from "#components/molecules/CounterCard.astro";
+
+test("renders the counter island", async () => {
+	const renderers = await loadRenderers([getContainerRenderer()]);
+	const container = await AstroContainer.create({ renderers });
+	const html = await container.renderToString(CounterCard);
+	expect(html).toMatch(/<astro-island[^>]*>.*Count: (<!-- -->)?2/s);
+});
+```
+
+`astro check` typechecks `.tsx` but not the script block of `.svelte` or `.vue` files; those
+need `svelte-check` or `vue-tsc`.
 
 ## Styles
 

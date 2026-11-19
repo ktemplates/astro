@@ -18,6 +18,9 @@ Before you start, have ready:
 - A Cloudflare account (free plan is enough)
 - A Google account, if you want Google Tag Manager
 - [mise](https://mise.jdx.dev/), or [Node.js](https://nodejs.org/) and [pnpm](https://pnpm.io/), installed
+- A decision on whether to use a UI framework (React, Svelte, Vue, …) or
+  plain Astro components; the agent asks, and explains the trade-off if you
+  are unsure
 
 The agent asks you for a few values and pauses for steps only you can do:
 logging in to Cloudflare in the browser, typing the API token into a hidden
@@ -79,7 +82,24 @@ Ask me for these values in one message, and suggest defaults:
    `workers.dev` URL.
 4. GTM: yes or no, do I want Google Tag Manager? Default: yes. I will create
    the container in Phase 6, so you do not need the ID yet.
-5. Only for a direct clone: GITHUB_OWNER, REPO_NAME and visibility (see
+5. UI_FRAMEWORK: which UI framework, if any, interactive components are
+   written in. Default: `none`. Offer these, with one line each so I can
+   choose:
+   - `none`: plain `.astro` components, with a `<script>` tag for
+     interactivity. Ships the least JavaScript and needs nothing extra; best
+     for content sites and small widgets. A framework can still be added
+     later with the same steps.
+   - `react`, `preact`, `svelte`, `vue`, `solid-js`: official Astro
+     integrations. Pick one when the site needs stateful interactive islands
+     (forms, dashboards, client-side state) or when I want to reuse
+     components or libraries written for that framework. `preact` is the
+     small React-compatible option.
+   - Any other Astro integration name, if I ask for one.
+
+   Recommend one framework at most. React, Preact and Solid all use JSX, and
+   mixing two of them needs per-folder `include` settings in
+   `astro.config.ts`.
+6. Only for a direct clone: GITHUB_OWNER, REPO_NAME and visibility (see
    Phase 1).
 
 ## Phase 3: Prepare the repository
@@ -139,10 +159,57 @@ deploying. Keep `src/lib/gtm.ts` and the `<script>` in
 `src/layouts/BaseLayout.astro` even if GTM is "no": without a container ID the
 build contains no GTM code at all.
 
-Then verify locally. All four must pass before going further:
+Install dependencies with `pnpm install`.
+
+If UI_FRAMEWORK is not `none`, add it now:
+
+1. Run `pnpm run astro add UI_FRAMEWORK --yes`. It installs the integration
+   and the framework, registers it in `astro.config.ts`, and, for JSX
+   frameworks, sets `jsx` and `jsxImportSource` in `tsconfig.json`. It may
+   also create a framework config file such as `svelte.config.js`; keep it.
+2. The project pins exact versions (`saveExact` in `pnpm-workspace.yaml`),
+   but `astro add` writes `^` ranges. Remove every `^` it added in
+   `package.json`, move any `@types/*` packages it put in `dependencies` to
+   `devDependencies`, then run `pnpm install` again. If it fails with
+   `ERR_PNPM_IGNORED_BUILDS`, run `pnpm approve-builds <package>` for the
+   packages listed and install again.
+3. Run `pnpm run format`; `astro add` rewrites config files with spaces.
+4. Prove the renderer works with one small interactive island: a
+   `Counter` component in `src/components/atoms/` written in UI_FRAMEWORK
+   (a button showing `Count: {count}` that increments on click, with a
+   `start` prop), rendered from `src/pages/index.astro` below `HelloWorld` as
+   `<Counter start={0} client:visible />`. Test it in
+   `tests/pages/index.test.ts`: the Container API only renders `.astro`
+   files, so render the page, and load the framework's renderer from its
+   container entry point:
+
+   ```ts
+   import { loadRenderers } from "astro:container"
+   import { getContainerRenderer } from "@astrojs/UI_FRAMEWORK/container-renderer"
+   import { experimental_AstroContainer as AstroContainer } from "astro/container"
+   import { expect, test } from "vitest"
+
+   import Index from "../../src/pages/index.astro"
+
+   test("index renders the Counter island", async () => {
+   	const renderers = await loadRenderers([getContainerRenderer()])
+   	const container = await AstroContainer.create({ renderers })
+   	const html = await container.renderToString(Index)
+   	expect(html).toMatch(/<astro-island[^>]*>.*Count: (<!-- -->)?0/s)
+   })
+   ```
+
+   (`solid-js` uses `@astrojs/solid-js/container-renderer`.) Import
+   `getContainerRenderer` from `/container-renderer`, not the package root,
+   where it is deprecated.
+5. `astro check` typechecks `.astro`, `.ts` and `.tsx` files, but not the
+   `<script>` block of `.svelte` or `.vue` files. For those, tell me that
+   `svelte-check` or `vue-tsc` would be needed for full type checking, and
+   leave adding it to me.
+
+Then verify locally. All three must pass before going further:
 
 ```bash
-pnpm install
 pnpm run check
 pnpm run test
 pnpm run build
@@ -297,7 +364,12 @@ previews never send data.
    ```
 
    A new Worker or custom domain can take a minute to resolve; retry a few
-   times before treating it as a failure.
+   times before treating it as a failure. If UI_FRAMEWORK is not `none`, also
+   confirm the Counter island shipped:
+
+   ```bash
+   curl -fsS https://PRODUCTION_URL | grep -o "<astro-island" | head -1
+   ```
 4. If GTM was set up, verify the container ID was built in. Astro inlines
    the small GTM script into the page, so it is in the HTML:
 
@@ -317,8 +389,11 @@ Finish with a short summary:
 - Repository URL
 - Production URL (and the preview URL pattern for pull requests)
 - Google Tag Manager: container ID, or "off" with how to turn it on later
+- UI framework: the integration added, or "none" with how to add one later
+  (`pnpm run astro add <name>`, then the Phase 4 steps)
 - What I still need to do by hand, if anything (for example, a custom domain
   waiting on DNS, or adding tags in GTM)
 - Next steps: open a pull request to see a preview deploy, then replace the
-  `HelloWorld` component with real content (see the README)
+  `HelloWorld` component (and the `Counter` island, if any) with real content
+  (see the README)
 ````

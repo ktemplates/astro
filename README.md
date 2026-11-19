@@ -214,9 +214,28 @@ import Greeting from "#components/atoms/Greeting.astro";
 
 Client-side behaviour goes in a `<script>` tag inside the component; Astro
 bundles it (TypeScript and `#lib/*` imports included) and ships it once per
-page. To use a UI framework (React, Svelte, Lit, …) add its
-[integration](https://docs.astro.build/en/guides/integrations-guide/) with
-`pnpm run astro add <name>`.
+page.
+
+### UI frameworks
+
+The template ships no UI framework: plain `.astro` components send the least
+JavaScript and cover most static sites. When a site needs stateful islands
+(forms, dashboards) or a component library written for one, add an
+[integration](https://docs.astro.build/en/guides/integrations-guide/) such as
+`react`, `preact`, `svelte`, `vue` or `solid-js`, ideally just one:
+
+```bash
+pnpm run astro add react --yes
+```
+
+`astro add` writes `^` ranges and space-indented config, so afterwards remove
+the `^` from the new `package.json` entries (the project pins exact versions),
+move any `@types/*` it added to `devDependencies`, and run `pnpm install` and
+`pnpm run format`. Use the component from an `.astro` file with a `client:*`
+directive, such as `<Counter client:visible />`; without one it renders to
+static HTML and ships no JavaScript. `astro check` does not typecheck the
+script block of `.svelte` or `.vue` files; add `svelte-check` or `vue-tsc` for
+that. [GET_START.md](GET_START.md) walks an agent through the same steps.
 
 > [!NOTE]
 > Biome only reads an `.astro` file's frontmatter, so imports used only in the
