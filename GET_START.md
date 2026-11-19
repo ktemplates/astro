@@ -136,8 +136,9 @@ Ask me for these values in one message, and suggest defaults:
 
    This commit is replaced by the real setup commit in Phase 7, so do not
    push yet.
-2. Install the pinned toolchain with `mise install` (skip if Node.js and pnpm
-   are installed without mise). Dependencies are installed in Phase 4.
+2. Install the toolchain pinned in `package.json` `devEngines` with
+   `mise install` (skip without mise: pnpm downloads the pinned pnpm and
+   Node.js itself). Dependencies are installed in Phase 4.
 3. Delete `GET_START.md`; it only applies to the template.
 
 ## Phase 4: Replace template placeholders

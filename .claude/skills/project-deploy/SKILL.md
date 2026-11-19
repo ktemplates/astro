@@ -75,10 +75,10 @@ secrets, and grant `deployments: write` on the job rather than at the top — th
 with `permissions: {}` and hand back only what each job needs. Keep that shape in anything
 new.
 
-Every workflow sets up its toolchain with `pnpm/setup`, which installs the pnpm version from
-`package.json`'s `packageManager`, installs Node.js from its `runtime` input, and runs
-`pnpm install --frozen-lockfile`. `runtime: node@<version>` must match `node` in
-`mise.toml`; `tests/config/toolchain.test.ts` fails when they drift.
+Every workflow sets up its toolchain with a `Set up runtime` step using `pnpm/setup` with
+`cache: true` and `require-lockfile: true` and no `runtime` input: it reads pnpm and Node.js
+from `package.json` `devEngines` and runs `pnpm install --frozen-lockfile`. Never pin a
+version in a workflow; `tests/config/toolchain.test.ts` fails on a `runtime:` input.
 
 A pinned SHA is bumped by resolving the tag again, never by hand:
 

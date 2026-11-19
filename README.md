@@ -25,7 +25,7 @@ first.
 
 | Concern       | Tool                                                                                                                                                                             |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Runtime       | [Node.js](https://nodejs.org/) and [pnpm](https://pnpm.io/) (pinned via [mise](https://mise.jdx.dev/))                                                                           |
+| Runtime       | [Node.js](https://nodejs.org/) and [pnpm](https://pnpm.io/) (pinned in `package.json` `devEngines`)                                                                              |
 | Framework     | [Astro](https://astro.build/), static output                                                                                                                                     |
 | CSS reset     | [`@kcstyles/reset.css`](https://www.npmjs.com/package/@kcstyles/reset.css)                                                                                                       |
 | Lint / format | [Biome](https://biomejs.dev/) with `@kcconfigs/biome`                                                                                                                            |
@@ -34,9 +34,13 @@ first.
 | Hosting       | Cloudflare Workers static assets via [Wrangler](https://developers.cloudflare.com/workers/wrangler/)                                                                             |
 | CI / CD       | GitHub Actions                                                                                                                                                                   |
 
-`mise.toml` pins the Node.js and pnpm versions, `package.json` repeats the pnpm
-version as `packageManager`, and CI installs both with
-[`pnpm/setup`](https://github.com/pnpm/setup). `pnpm-workspace.yaml` saves exact
+`package.json` pins the toolchain in one place: `devEngines.runtime` (Node.js)
+and `devEngines.packageManager` (pnpm), both with `onFail: "download"` so pnpm
+fetches the exact versions itself. `volta.node` mirrors the Node.js version
+for Volta users and `engines.node` lists the supported range. `mise.toml` pins
+no versions; it tells [mise](https://mise.jdx.dev/) to read them from
+`package.json`. CI installs both with
+[`pnpm/setup`](https://github.com/pnpm/setup), which reads the same fields. `pnpm-workspace.yaml` saves exact
 versions and lists the dependencies allowed to run build scripts (`esbuild`,
 `workerd`).
 
@@ -56,8 +60,9 @@ versions and lists the dependencies allowed to run build scripts (`esbuild`,
    cd my-app
    ```
 
-2. Install the pinned toolchain (Node.js and pnpm) with mise, or install them
-   yourself (see `mise.toml` for the expected versions):
+2. Install the pinned toolchain (Node.js and pnpm) with mise, which reads the
+   versions from `package.json` `devEngines`, or install any pnpm 11+ yourself:
+   it downloads the pinned pnpm and Node.js on first use.
 
    ```bash
    mise install
@@ -128,7 +133,7 @@ favicons in `public/`.
 ├── GET_START.md         # setup prompt for an AI agent
 ├── astro.config.ts      # static output, file-format pages, no trailing slash
 ├── biome.json           # lint / format config
-├── mise.toml            # pinned tool versions (Node.js, pnpm)
+├── mise.toml            # mise settings: read Node.js and pnpm versions from package.json
 ├── pnpm-workspace.yaml  # pnpm settings: exact versions, allowed build scripts
 ├── tsconfig.json        # TypeScript config (checks every .ts and .astro file)
 ├── vitest.config.ts     # Vitest through Astro's Vite config

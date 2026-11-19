@@ -13,10 +13,13 @@ the bare binary name resolves; don't write `pnpm exec` or `npx` inside a script,
 command in a file under `scripts/`. Arguments are forwarded by `pnpm run` itself, which is
 what keeps `pnpm run test -t "renders"` and `pnpm run dev --port 4000` working.
 
-**Every script runs on Node.js**, the runtime Astro, Vitest and Wrangler target. `mise.toml`
-pins Node.js and pnpm; `package.json` repeats the pnpm version as `packageManager`, and CI
-installs the same Node.js version through `pnpm/setup`'s `runtime` input, so bump all three
-together (`tests/config/toolchain.test.ts` fails when they drift). `pnpm-workspace.yaml`
+**Every script runs on Node.js**, the runtime Astro, Vitest and Wrangler target. `package.json` is the one place the toolchain is pinned: `devEngines.runtime` (Node.js) and
+`devEngines.packageManager` (pnpm), both with `onFail: "download"`, so pnpm fetches the
+exact versions itself.
+Bump a version there and in `volta.node` (kept equal to `devEngines.runtime.version`); keep
+`engines.node` covering it. `mise.toml` pins nothing and reads these through
+`idiomatic_version_file_enable_tools`, and CI's `pnpm/setup` reads them too
+(`tests/config/toolchain.test.ts` fails when they drift). `pnpm-workspace.yaml`
 saves exact versions and lists in `allowBuilds` the dependencies allowed to run install
 scripts; a new one that needs its script fails `pnpm install` with `ERR_PNPM_IGNORED_BUILDS`
 until `pnpm approve-builds <name>` adds it.
