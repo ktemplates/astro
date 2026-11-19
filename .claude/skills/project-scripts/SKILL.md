@@ -7,19 +7,15 @@ description: Use when adding or changing a package script, adding a file under s
 
 ## Where a package script lives
 
-A script that is just a command is that command in `package.json` — `bunx --bun astro dev`,
-`bunx --bun astro check`, `biome check`, `bunx --bun vitest run`. `pnpm run` puts
-`node_modules/.bin` on `PATH`, and `bunx` runs the local binary; don't write `pnpm exec` or
-`npx` inside a script, and don't wrap a single
+A script that is just a command is that command in `package.json` — `astro dev`,
+`astro check`, `biome check`, `vitest run`. `pnpm run` puts `node_modules/.bin` on `PATH`, so
+the bare binary name resolves; don't write `pnpm exec` or `npx` inside a script, and don't wrap a single
 command in a file under `scripts/`. Arguments are forwarded by `pnpm run` itself, which is
 what keeps `pnpm run test -t "renders"` and `pnpm run dev --port 4000` working.
 
-**pnpm is the package manager, Bun is the runtime.** `astro` and `vitest` ship with a `node`
-shebang, so a bare `astro build` would start Node.js; every script that runs them writes
-`bunx --bun astro …` or `bunx --bun vitest …` instead. Not `bun --bun astro`: `bun` resolves a
-package script named `astro` before the binary. Biome is a native binary and needs no prefix.
-`mise.toml` pins Bun and pnpm; `package.json` repeats the pnpm version as `packageManager`, and
-CI installs the same Bun version through `pnpm/setup`'s `runtime` input, so bump all three
+**Every script runs on Node.js**, the runtime Astro, Vitest and Wrangler target. `mise.toml`
+pins Node.js and pnpm; `package.json` repeats the pnpm version as `packageManager`, and CI
+installs the same Node.js version through `pnpm/setup`'s `runtime` input, so bump all three
 together (`tests/config/toolchain.test.ts` fails when they drift). `pnpm-workspace.yaml`
 saves exact versions and lists in `allowBuilds` the dependencies allowed to run install
 scripts; a new one that needs its script fails `pnpm install` with `ERR_PNPM_IGNORED_BUILDS`
@@ -33,7 +29,8 @@ since unsafe fixes can change behaviour.
 `pnpm run astro sync` work without an extra script.
 
 A script that is a *program* (it fetches, generates or migrates something) is a file under
-`scripts/`, run with `bun scripts/<name>.ts` from a package script. No page imports it, so
+`scripts/`, run with `node scripts/<name>.ts` from a package script (Node.js strips the types, so
+use only erasable TypeScript syntax: no `enum` or parameter properties). No page imports it, so
 it never reaches the bundle, and `check:type` covers it without any config change.
 
 Where code lives: pages in `src/pages/`, layouts in `src/layouts/`, components in
@@ -44,7 +41,7 @@ Where code lives: pages in `src/pages/`, layouts in `src/layouts/`, components i
 ## What `check:type` reads
 
 `check:type` is `astro check`, which runs TypeScript over every `.astro` file *and* every
-file `tsconfig.json` includes. `tsconfig.json` extends `@kcconfigs/tsconfig/bun` (Bun types) and then
+file `tsconfig.json` includes. `tsconfig.json` extends `@kcconfigs/tsconfig` (Node.js types) and then
 `astro/tsconfigs/strictest` (the later preset wins where they overlap), and includes
 `.astro/types.d.ts` plus everything under the root, with `node_modules/` and `dist/`
 excluded. So `src/`, `tests/` and `scripts/` are all typechecked with no `include` to

@@ -8,15 +8,15 @@
 		"#layouts/*": "./src/layouts/*"
 	},
 	"scripts": {
-		"dev": "bunx --bun astro dev",
-		"build": "bunx --bun astro build",
-		"preview": "bunx --bun astro preview",
-		"test": "bunx --bun vitest run",
+		"dev": "astro dev",
+		"build": "astro build",
+		"preview": "astro preview",
+		"test": "vitest run",
 		"check": "pnpm run check:type && pnpm run check:biome",
-		"check:type": "bunx --bun astro check",
+		"check:type": "astro check",
 		"check:biome": "biome check",
 		"format": "biome check --unsafe --write",
-		"astro": "bunx --bun astro"
+		"astro": "astro"
 	},
 	"dependencies": {
 		"@kcstyles/reset.css": "2.1.1",
@@ -27,7 +27,7 @@
 		"@biomejs/biome": "2.6.5",
 		"@kcconfigs/biome": "4.2.1",
 		"@kcconfigs/tsconfig": "2.1.4",
-		"@types/bun": "1.4.4",
+		"@types/node": "24.19.2",
 		"happy-dom": "21.0.4",
 		"typescript": "6.0.3",
 		"vitest": "5.1.0",

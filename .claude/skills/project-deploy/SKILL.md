@@ -8,7 +8,7 @@ description: Use when changing `pnpm run build`, `pnpm run dev`, `pnpm run previ
 ## Build
 
 `dev`, `build` and `preview` are each one `astro` command in `package.json`, with no wrapper
-script, run on Bun through `bunx --bun` (see the `project-scripts` skill). `astro build` renders every route under `src/pages/` (see the
+script, run on Node.js (see the `project-scripts` skill). `astro build` renders every route under `src/pages/` (see the
 `project-pages` skill) to static HTML in `dist/`, with bundled scripts and styles in
 `dist/_astro/` under hashed names, and copies `public/` to the root of `dist/` unchanged.
 Astro empties `dist/` before each build, so no stale file from an earlier build reaches a
@@ -64,10 +64,9 @@ with `permissions: {}` and hand back only what each job needs. Keep that shape i
 new.
 
 Every workflow sets up its toolchain with `pnpm/setup`, which installs the pnpm version from
-`package.json`'s `packageManager`, installs Bun from its `runtime` input, and runs
-`pnpm install --frozen-lockfile`. `runtime: bun@<version>` must match `bun` in
-`mise.toml`; `wrangler-action` runs Wrangler on the runner's preinstalled Node.js (Wrangler
-needs 22 or later), while the build it starts runs on Bun. `tests/config/toolchain.test.ts` fails when they drift.
+`package.json`'s `packageManager`, installs Node.js from its `runtime` input, and runs
+`pnpm install --frozen-lockfile`. `runtime: node@<version>` must match `node` in
+`mise.toml`; `tests/config/toolchain.test.ts` fails when they drift.
 
 A pinned SHA is bumped by resolving the tag again, never by hand:
 
