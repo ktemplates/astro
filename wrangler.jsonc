@@ -5,7 +5,7 @@
 	"workers_dev": true,
 	"preview_urls": true,
 	"build": {
-		"command": "bun run build"
+		"command": "pnpm run build"
 	},
 	"assets": {
 		"directory": "dist"

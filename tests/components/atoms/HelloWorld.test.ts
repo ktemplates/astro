@@ -12,7 +12,7 @@ test("renders default greeting", async () => {
 test("renders custom name", async () => {
 	const container = await AstroContainer.create()
 	const html = await container.renderToString(HelloWorld, {
-		props: { name: "Bun" },
+		props: { name: "Astro" },
 	})
-	expect(html).toMatch(/<h1[^>]*>Hello, Bun!<\/h1>/)
+	expect(html).toMatch(/<h1[^>]*>Hello, Astro!<\/h1>/)
 })

@@ -12,7 +12,7 @@
 		"build": "astro build",
 		"preview": "astro preview",
 		"test": "vitest run",
-		"check": "bun run check:type && bun run check:biome",
+		"check": "pnpm run check:type && pnpm run check:biome",
 		"check:type": "astro check",
 		"check:biome": "biome check",
 		"format": "biome check --unsafe --write",
@@ -27,10 +27,11 @@
 		"@biomejs/biome": "2.6.5",
 		"@kcconfigs/biome": "4.2.1",
 		"@kcconfigs/tsconfig": "2.1.4",
-		"@types/bun": "1.4.4",
+		"@types/node": "24.19.2",
 		"happy-dom": "21.0.4",
 		"typescript": "6.0.3",
 		"vitest": "5.1.0",
 		"wrangler": "4.158.0"
-	}
+	},
+	"packageManager": "pnpm@12.22.0"
 }

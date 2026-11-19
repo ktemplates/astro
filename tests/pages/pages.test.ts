@@ -1,10 +1,9 @@
-import { Glob } from "bun"
+import { globSync } from "node:fs"
+import { readFile } from "node:fs/promises"
 import { expect, test } from "vitest"
 
-const pages = Array.from(new Glob("**/*.astro").scanSync({ cwd: "src/pages" }))
-const layouts = Array.from(new Glob("*.astro").scanSync({ cwd: "src/layouts" })).map((file) =>
-	file.replace(/\.astro$/, ""),
-)
+const pages = globSync("**/*.astro", { cwd: "src/pages" })
+const layouts = globSync("*.astro", { cwd: "src/layouts" }).map((file) => file.replace(/\.astro$/, ""))
 
 // Layouts a source file imports through #layouts/* and renders as a tag.
 const usedLayouts = (source: string) =>
@@ -17,7 +16,7 @@ const reachesBase = async (layout: string, seen = new Set<string>()): Promise<bo
 	if (layout === "BaseLayout") return true
 	if (seen.has(layout)) return false
 	seen.add(layout)
-	const source = await Bun.file(`src/layouts/${layout}.astro`).text()
+	const source = await readFile(`src/layouts/${layout}.astro`, "utf8")
 	for (const inner of usedLayouts(source)) {
 		if (await reachesBase(inner, seen)) return true
 	}
@@ -29,7 +28,7 @@ test("src/pages has at least one page", () => {
 })
 
 test.each(pages)("%s renders inside BaseLayout, which loads Google Tag Manager", async (page) => {
-	const source = await Bun.file(`src/pages/${page}`).text()
+	const source = await readFile(`src/pages/${page}`, "utf8")
 	const used = usedLayouts(source)
 	expect(used.length).toBeGreaterThan(0)
 	for (const layout of used) expect(await reachesBase(layout)).toBe(true)

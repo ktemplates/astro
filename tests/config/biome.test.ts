@@ -12,7 +12,7 @@ afterAll(() => rmSync(dir, { recursive: true, force: true }))
 const lint = (source: string) => {
 	const file = join(dir, "Fixture.astro")
 	writeFileSync(file, source)
-	return spawnSync("bunx", ["biome", "lint", file], {
+	return spawnSync("pnpm", ["exec", "biome", "lint", file], {
 		cwd: root,
 		encoding: "utf8",
 	})
