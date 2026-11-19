@@ -18,9 +18,11 @@ Before you start, have ready:
 - A Cloudflare account (free plan is enough)
 - A Google account, if you want Google Tag Manager
 - [mise](https://mise.jdx.dev/), or [Node.js](https://nodejs.org/) and [pnpm](https://pnpm.io/), installed
-- A decision on whether to use a UI framework (React, Svelte, Vue, …) or
-  plain Astro components; the agent asks, and explains the trade-off if you
-  are unsure
+- Two decisions, which the agent asks about and explains if you are unsure:
+  - a static site (every page built ahead of time, interactivity in the
+    browser) or server rendering (API routes and per-request pages running
+    in the Cloudflare Worker)
+  - a UI framework (React, Svelte, Vue, …) or plain Astro components
 
 The agent asks you for a few values and pauses for steps only you can do:
 logging in to Cloudflare in the browser, typing the API token into a hidden
@@ -99,7 +101,20 @@ Ask me for these values in one message, and suggest defaults:
    Recommend one framework at most. React, Preact and Solid all use JSX, and
    mixing two of them needs per-folder `include` settings in
    `astro.config.ts`.
-6. Only for a direct clone: GITHUB_OWNER, REPO_NAME and visibility (see
+6. RENDERING: `static` or `server`. Default: `static`. Explain the
+   difference so I can choose:
+   - `static`: every page is built to HTML at build time and served as
+     static assets, with client-side JavaScript (and UI_FRAMEWORK islands)
+     for interactivity. No server code runs, so there is nothing to scale
+     or secure at runtime. Right for content sites, docs, landing pages and
+     apps that call someone else's API from the browser.
+   - `server`: adds the Cloudflare adapter so chosen routes render on each
+     request inside the Worker, for API endpoints, form handling, auth,
+     per-user pages, or reading secrets and Cloudflare bindings (KV, D1,
+     R2). Pages not opted in stay static. The server code runs on
+     Cloudflare's Workers runtime, not Node.js, so Node-only packages may
+     not work there.
+7. Only for a direct clone: GITHUB_OWNER, REPO_NAME and visibility (see
    Phase 1).
 
 ## Phase 3: Prepare the repository
@@ -206,6 +221,71 @@ If UI_FRAMEWORK is not `none`, add it now:
    `<script>` block of `.svelte` or `.vue` files. For those, tell me that
    `svelte-check` or `vue-tsc` would be needed for full type checking, and
    leave adding it to me.
+
+If RENDERING is `server`, add on-demand rendering:
+
+1. Run `pnpm run astro add cloudflare --yes`. It installs
+   `@astrojs/cloudflare`, sets `adapter` in `astro.config.ts`, adds a
+   `generate-types` script (`wrangler types`) and includes
+   `worker-configuration.d.ts` in `tsconfig.json`. Keep all of that, and
+   pin the new dependency exactly and run `pnpm run format` as for
+   UI_FRAMEWORK above.
+2. In `astro.config.ts`, keep `output: "static"` (pages stay prerendered
+   unless a route opts out), pass `imageService: "compile"` to the adapter,
+   and add `session: false`:
+
+   ```ts
+   adapter: cloudflare({ imageService: "compile" }),
+   session: false,
+   ```
+
+   Without these the Worker also needs a KV namespace (`SESSION`) and an
+   Images binding, which Wrangler provisions on deploy and the Worker-scoped
+   API token from Phase 5 cannot create. Turn them on later, with the
+   matching token permissions, when a route needs `Astro.session` or
+   on-request image resizing.
+3. Point `wrangler.jsonc` at the adapter's Worker entry and bind the static
+   assets to it:
+
+   ```jsonc
+   "main": "@astrojs/cloudflare/entrypoints/server",
+   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+   "assets": { "binding": "ASSETS", "directory": "dist" },
+   ```
+
+   The build now writes `dist/client/` (static files) and `dist/server/`
+   (the Worker, with a generated `wrangler.json` that `wrangler deploy`
+   picks up automatically).
+4. Prove it with one API route, `src/pages/api/health.ts`:
+
+   ```ts
+   import type { APIRoute } from "astro"
+
+   // Rendered on request by the Worker, not at build time.
+   export const prerender = false
+
+   export const GET: APIRoute = () => Response.json({ status: "ok" })
+   ```
+
+   and `tests/pages/api/health.test.ts`, which calls the handler directly
+   (the Container API's types only accept `.astro` components):
+
+   ```ts
+   import type { APIContext } from "astro"
+   import { expect, test } from "vitest"
+
+   import { GET, prerender } from "../../../src/pages/api/health"
+
+   test("/api/health renders on request", () => {
+   	expect(prerender).toBe(false)
+   })
+
+   test("GET /api/health responds ok", async () => {
+   	const response = await GET({} as APIContext)
+   	expect(response.status).toBe(200)
+   	expect(await response.json()).toEqual({ status: "ok" })
+   })
+   ```
 
 Then verify locally. All three must pass before going further:
 
@@ -370,6 +450,14 @@ previews never send data.
    ```bash
    curl -fsS https://PRODUCTION_URL | grep -o "<astro-island" | head -1
    ```
+
+   If RENDERING is `server`, confirm the Worker answers on request:
+
+   ```bash
+   curl -fsS https://PRODUCTION_URL/api/health
+   ```
+
+   Expect `{"status":"ok"}`.
 4. If GTM was set up, verify the container ID was built in. Astro inlines
    the small GTM script into the page, so it is in the HTML:
 
@@ -389,6 +477,8 @@ Finish with a short summary:
 - Repository URL
 - Production URL (and the preview URL pattern for pull requests)
 - Google Tag Manager: container ID, or "off" with how to turn it on later
+- Rendering: `static`, or `server` with the `/api/health` URL and a note
+  that sessions and the Images binding are off
 - UI framework: the integration added, or "none" with how to add one later
   (`pnpm run astro add <name>`, then the Phase 4 steps)
 - What I still need to do by hand, if anything (for example, a custom domain

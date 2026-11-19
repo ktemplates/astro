@@ -14,11 +14,23 @@ script, run on Node.js (see the `project-scripts` skill). `astro build` renders 
 Astro empties `dist/` before each build, so no stale file from an earlier build reaches a
 deploy.
 
-`astro.config.ts` fixes the output shape: `output: "static"` (no server code, no adapter),
+`astro.config.ts` fixes the output shape: `output: "static"` (everything prerendered),
 `build.format: "file"` (`about.astro` becomes `dist/about.html`, not `dist/about/index.html`)
 and `trailingSlash: "never"`. Cloudflare's static assets serve `about.html` at `/about`, so
-the three must change together. Adding an adapter or `output: "server"` turns the deploy
-into a Worker script, which `wrangler.jsonc` is not set up for.
+the three must change together.
+
+**With the Cloudflare adapter** (added by `GET_START.md` when the user chose server
+rendering), routes with `export const prerender = false` run in the Worker. The build then
+writes static files to `dist/client/` and the Worker to `dist/server/`, including a generated
+`dist/server/wrangler.json`; `wrangler deploy` and `versions upload` follow
+`.wrangler/deploy/config.json` to it automatically, so the workflows do not change.
+`wrangler.jsonc` must then carry `main: "@astrojs/cloudflare/entrypoints/server"`,
+`compatibility_flags: ["nodejs_compat", "global_fetch_strictly_public"]` and
+`assets.binding: "ASSETS"`. `astro.config.ts` keeps `session: false` and
+`imageService: "compile"` so the Worker needs no KV namespace or Images binding: the
+Worker-scoped deploy token cannot provision those. Enabling either means adding that
+permission to the `CLOUDFLARE_API_TOKEN` first. Without the adapter, do not add one or set
+`output: "server"` casually; ask the user, since it changes what runs in production.
 
 Small scripts and stylesheets are inlined into the HTML rather than written to `_astro/`
 (Vite's `assetsInlineLimit`), so a page can ship with no separate JS file at all. A grep for

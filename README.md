@@ -1,9 +1,10 @@
 # bun-astro-template
 
-A starter template for static websites built with [Astro](https://astro.build/),
+A starter template for websites built with [Astro](https://astro.build/),
 run on [Node.js](https://nodejs.org/) with [pnpm](https://pnpm.io/), and deployed to
 [Cloudflare Workers](https://developers.cloudflare.com/workers/static-assets/)
-as static assets. It started as a sibling of
+as static assets, with optional server rendering through the Cloudflare
+adapter. It started as a sibling of
 [bun-lit-template](https://github.com/kamontat/bun-lit-template), with the same
 tooling, CI and deploy setup, but runs on Node.js because Astro targets Node.js
 first.
@@ -297,6 +298,19 @@ reports external scripts as loaded instead of fetching them.
 
 The site deploys to Cloudflare Workers as static assets. `wrangler.jsonc` runs
 `pnpm run build` and uploads `dist/`.
+
+### Static or server rendering
+
+Out of the box every page is prerendered and no server code runs. For API
+routes, form handling or per-request pages, add the
+[Cloudflare adapter](https://docs.astro.build/en/guides/integrations-guide/cloudflare/)
+(`pnpm run astro add cloudflare --yes`) and opt routes out of prerendering
+with `export const prerender = false`. That code runs on Cloudflare's Workers
+runtime, not Node.js. The adapter also needs `main`, `compatibility_flags` and
+an `ASSETS` binding in `wrangler.jsonc`, and `session: false` plus
+`imageService: "compile"` keep the Worker free of the KV and Images bindings the
+Worker-scoped deploy token cannot create. [GET_START.md](GET_START.md) (Phase 4)
+lists the exact changes.
 
 ### Manual deploy
 
